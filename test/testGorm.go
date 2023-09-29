@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"ginchat/models"
+	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -19,7 +20,10 @@ func main() {
 
 	// Create
 	user := &models.UserBasic{}
-	user.Name = "ssss"
+	user.Name = "yyyy"
+	user.HeartbeatTime = time.Now()
+	user.LoginTime = time.Now()
+	user.LogoutTime = time.Now()
 	db.Create(user)
 
 	// Read
