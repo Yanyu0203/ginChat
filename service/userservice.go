@@ -21,7 +21,9 @@ func GetUserList(c *gin.Context) {
 	data := models.GetUserList()
 
 	c.JSON(200, gin.H{
-		"message": data,
+		"code":    0,
+		"message": "User list",
+		"data":    data,
 	})
 }
 
@@ -44,15 +46,19 @@ func CreateUser(c *gin.Context) {
 
 	nameCheck := models.FindUserByName(user.Name)
 	if nameCheck.Name != "" {
-		c.JSON(-1, gin.H{
+		c.JSON(200, gin.H{
+			"code":    -1,
 			"message": "This name has been used",
+			"data":    user,
 		})
 		return
 	}
 
 	if passWord != repassWord {
-		c.JSON(-1, gin.H{
+		c.JSON(200, gin.H{
+			"code":    -1,
 			"message": "password dont match",
+			"data":    user,
 		})
 		return
 	}
@@ -65,7 +71,9 @@ func CreateUser(c *gin.Context) {
 	user.HeartbeatTime = time.Now()
 	models.CreateUser(user)
 	c.JSON(200, gin.H{
+		"code":    0,
 		"message": "Sign in success",
+		"data":    user,
 	})
 }
 
@@ -84,7 +92,9 @@ func FindUserByNameAndPwd(c *gin.Context) {
 	user := models.FindUserByName(name)
 	if user.Name == "" {
 		c.JSON(200, gin.H{
+			"code":    -1,
 			"message": "User not exist",
+			"data":    data,
 		})
 		return
 	}
@@ -92,7 +102,9 @@ func FindUserByNameAndPwd(c *gin.Context) {
 	flag := utils.ValidPassword(passWord, user.Salt, user.PassWord)
 	if !flag {
 		c.JSON(200, gin.H{
+			"code":    -1, //0, success; 1, fail
 			"message": "Password not match",
+			"data":    data,
 		})
 		return
 	}
@@ -101,7 +113,9 @@ func FindUserByNameAndPwd(c *gin.Context) {
 	data = models.FindUserByNameAndPwd(name, pwd)
 
 	c.JSON(200, gin.H{
-		"message": data,
+		"code":    0, //0, success; 1, fail
+		"message": "Log in success",
+		"data":    data,
 	})
 }
 
@@ -118,7 +132,9 @@ func DeleteUser(c *gin.Context) {
 	user.ID = uint(id)
 	models.DeleteUser(user)
 	c.JSON(200, gin.H{
+		"code":    0,
 		"message": "Delete user success",
+		"data":    user,
 	})
 }
 
@@ -146,12 +162,16 @@ func UpdateUser(c *gin.Context) {
 	if err != nil {
 		fmt.Println(err)
 		c.JSON(200, gin.H{
+			"code":    -1,
 			"message": "param no match",
+			"data":    user,
 		})
 	} else {
 		models.UpdateUser(user)
 		c.JSON(200, gin.H{
+			"code":    0,
 			"message": "Update user success",
+			"data":    user,
 		})
 	}
 
