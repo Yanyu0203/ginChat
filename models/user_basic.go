@@ -18,6 +18,8 @@ type UserBasic struct {
 	ClientIp   string
 	ClientPort string
 
+	Salt string
+
 	LoginTime     time.Time
 	HeartbeatTime time.Time
 	LogoutTime    time.Time
@@ -41,6 +43,12 @@ func GetUserList() []*UserBasic {
 func FindUserByName(name string) UserBasic {
 	user := UserBasic{}
 	utils.DB.Where("name = ?", name).First(&user)
+	return user
+}
+
+func FindUserByNameAndPwd(name string, password string) UserBasic {
+	user := UserBasic{}
+	utils.DB.Where("name = ? and pass_word = ?", name, password).First(&user)
 	return user
 }
 

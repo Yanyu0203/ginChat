@@ -3,6 +3,8 @@ package service
 import (
 	"fmt"
 	"ginchat/models"
+	"ginchat/utils"
+	"math/rand"
 	"strconv"
 	"time"
 
@@ -38,6 +40,8 @@ func CreateUser(c *gin.Context) {
 	passWord := c.Query("passWord")
 	repassWord := c.Query("repassWord")
 
+	salt := fmt.Sprintf("%06d", rand.Int31())
+
 	nameCheck := models.FindUserByName(user.Name)
 	if nameCheck.Name != "" {
 		c.JSON(-1, gin.H{
@@ -53,7 +57,9 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	user.PassWord = passWord
+	// user.PassWord = passWord
+	user.Salt = salt
+	user.PassWord = utils.MakePassword(passWord, salt)
 	user.LoginTime = time.Now()
 	user.LogoutTime = time.Now()
 	user.HeartbeatTime = time.Now()
@@ -61,7 +67,42 @@ func CreateUser(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"message": "Sign in success",
 	})
+}
 
+// FindUserByNameAndPwd
+// @Summary User log in
+// @Tags User
+// @param name query string false "userName"
+// @param passWord query string false "passWord"
+// @Success 200 {string} json{"code", "message"}
+// @Router /user/findUserByNameAndPwd [post]
+func FindUserByNameAndPwd(c *gin.Context) {
+	data := models.UserBasic{}
+
+	name := c.Query("name")
+	passWord := c.Query("passWord")
+	user := models.FindUserByName(name)
+	if user.Name == "" {
+		c.JSON(200, gin.H{
+			"message": "User not exist",
+		})
+		return
+	}
+
+	flag := utils.ValidPassword(passWord, user.Salt, user.PassWord)
+	if !flag {
+		c.JSON(200, gin.H{
+			"message": "Password not match",
+		})
+		return
+	}
+	pwd := utils.MakePassword(passWord, user.Salt)
+
+	data = models.FindUserByNameAndPwd(name, pwd)
+
+	c.JSON(200, gin.H{
+		"message": data,
+	})
 }
 
 // DeleteUser

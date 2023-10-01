@@ -48,6 +48,25 @@ paths:
       summary: delete user
       tags:
       - User
+  /user/findUserByNameAndPwd:
+    post:
+      parameters:
+      - description: userName
+        in: query
+        name: name
+        type: string
+      - description: passWord
+        in: query
+        name: passWord
+        type: string
+      responses:
+        "200":
+          description: code", "message"}
+          schema:
+            type: string
+      summary: User log in
+      tags:
+      - User
   /user/getUserList:
     get:
       responses:
