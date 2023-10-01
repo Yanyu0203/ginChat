@@ -37,12 +37,22 @@ func CreateUser(c *gin.Context) {
 	user.Name = c.Query("name")
 	passWord := c.Query("passWord")
 	repassWord := c.Query("repassWord")
+
+	nameCheck := models.FindUserByName(user.Name)
+	if nameCheck.Name != "" {
+		c.JSON(-1, gin.H{
+			"message": "This name has been used",
+		})
+		return
+	}
+
 	if passWord != repassWord {
 		c.JSON(-1, gin.H{
 			"message": "password dont match",
 		})
 		return
 	}
+
 	user.PassWord = passWord
 	user.LoginTime = time.Now()
 	user.LogoutTime = time.Now()
