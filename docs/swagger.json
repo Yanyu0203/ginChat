@@ -19,10 +19,107 @@
                 }
             }
         },
+        "/user/createUser": {
+            "get": {
+                "tags": [
+                    "User"
+                ],
+                "summary": "create user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "userName",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "passWord",
+                        "name": "passWord",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "repassWord",
+                        "name": "repassWord",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "code\", \"message\"}",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/deleteUser": {
+            "get": {
+                "tags": [
+                    "User"
+                ],
+                "summary": "delete user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "id",
+                        "name": "id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "code\", \"message\"}",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/user/getUserList": {
             "get": {
                 "tags": [
-                    "userBasic"
+                    "User"
+                ],
+                "summary": "user list",
+                "responses": {
+                    "200": {
+                        "description": "code\", \"message\"}",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/updateUser": {
+            "post": {
+                "tags": [
+                    "User"
+                ],
+                "summary": "update user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "id",
+                        "name": "id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "name",
+                        "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "passWord",
+                        "name": "passWord",
+                        "in": "formData"
+                    }
                 ],
                 "responses": {
                     "200": {

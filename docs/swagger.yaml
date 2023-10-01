@@ -10,6 +10,44 @@ paths:
             type: string
       tags:
       - index
+  /user/createUser:
+    get:
+      parameters:
+      - description: userName
+        in: query
+        name: name
+        type: string
+      - description: passWord
+        in: query
+        name: passWord
+        type: string
+      - description: repassWord
+        in: query
+        name: repassWord
+        type: string
+      responses:
+        "200":
+          description: code", "message"}
+          schema:
+            type: string
+      summary: create user
+      tags:
+      - User
+  /user/deleteUser:
+    get:
+      parameters:
+      - description: id
+        in: query
+        name: id
+        type: string
+      responses:
+        "200":
+          description: code", "message"}
+          schema:
+            type: string
+      summary: delete user
+      tags:
+      - User
   /user/getUserList:
     get:
       responses:
@@ -17,6 +55,30 @@ paths:
           description: code", "message"}
           schema:
             type: string
+      summary: user list
       tags:
-      - userBasic
+      - User
+  /user/updateUser:
+    post:
+      parameters:
+      - description: id
+        in: formData
+        name: id
+        type: string
+      - description: name
+        in: formData
+        name: name
+        type: string
+      - description: passWord
+        in: formData
+        name: passWord
+        type: string
+      responses:
+        "200":
+          description: code", "message"}
+          schema:
+            type: string
+      summary: update user
+      tags:
+      - User
 swagger: "2.0"
