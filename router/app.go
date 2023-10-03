@@ -25,6 +25,7 @@ func Router() *gin.Engine {
 
 	//send message
 	r.GET("/user/sendMsg", service.SendMsg)
+	r.GET("/user/sendUserMsg", service.SendUserMsg)
 
 	return r
 }
