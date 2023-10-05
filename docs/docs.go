@@ -45,14 +45,14 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "passWord",
-                        "name": "passWord",
+                        "description": "password",
+                        "name": "password",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "repassWord",
-                        "name": "repassWord",
+                        "description": "repassword",
+                        "name": "repassword",
                         "in": "query"
                     }
                 ],
@@ -105,8 +105,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "passWord",
-                        "name": "passWord",
+                        "description": "password",
+                        "name": "password",
                         "in": "query"
                     }
                 ],

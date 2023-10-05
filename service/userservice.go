@@ -33,21 +33,32 @@ func GetUserList(c *gin.Context) {
 // @Summary create user
 // @Tags User
 // @param name query string false "userName"
-// @param passWord query string false "passWord"
-// @param repassWord query string false "repassWord"
+// @param password query string false "password"
+// @param repassword query string false "repassword"
 // @Success 200 {string} json{"code", "message"}
 // @Router /user/createUser [get]
 func CreateUser(c *gin.Context) {
 	user := models.UserBasic{}
 
-	user.Name = c.Query("name")
-	passWord := c.Query("passWord")
-	repassWord := c.Query("repassWord")
+	// user.Name = c.Query("name")
+	// password := c.Query("password")
+	// repassword := c.Query("repassword")
+	user.Name = c.Request.FormValue("name")
+	password := c.Request.FormValue("password")
+	repassword := c.Request.FormValue("Identity")
 
 	salt := fmt.Sprintf("%06d", rand.Int31())
 
-	nameCheck := models.FindUserByName(user.Name)
-	if nameCheck.Name != "" {
+	data := models.FindUserByName(user.Name)
+	if user.Name == "" || password == "" || repassword == "" {
+		c.JSON(200, gin.H{
+			"code":    -1,
+			"message": "Name or password is empty",
+			"data":    user,
+		})
+		return
+	}
+	if data.Name != "" {
 		c.JSON(200, gin.H{
 			"code":    -1,
 			"message": "This name has been used",
@@ -56,7 +67,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	if passWord != repassWord {
+	if password != repassword {
 		c.JSON(200, gin.H{
 			"code":    -1,
 			"message": "password dont match",
@@ -67,7 +78,7 @@ func CreateUser(c *gin.Context) {
 
 	// user.PassWord = passWord
 	user.Salt = salt
-	user.PassWord = utils.MakePassword(passWord, salt)
+	user.PassWord = utils.MakePassword(password, salt)
 	user.LoginTime = time.Now()
 	user.LogoutTime = time.Now()
 	user.HeartbeatTime = time.Now()
@@ -83,14 +94,16 @@ func CreateUser(c *gin.Context) {
 // @Summary User log in
 // @Tags User
 // @param name query string false "userName"
-// @param passWord query string false "passWord"
+// @param password query string false "password"
 // @Success 200 {string} json{"code", "message"}
 // @Router /user/findUserByNameAndPwd [post]
 func FindUserByNameAndPwd(c *gin.Context) {
 	data := models.UserBasic{}
 
-	name := c.Query("name")
-	passWord := c.Query("passWord")
+	// name := c.Query("name")
+	// passWord := c.Query("passWord")
+	name := c.Request.FormValue("name")
+	password := c.Request.FormValue("password")
 	user := models.FindUserByName(name)
 	if user.Name == "" {
 		c.JSON(200, gin.H{
@@ -101,7 +114,7 @@ func FindUserByNameAndPwd(c *gin.Context) {
 		return
 	}
 
-	flag := utils.ValidPassword(passWord, user.Salt, user.PassWord)
+	flag := utils.ValidPassword(password, user.Salt, user.PassWord)
 	if !flag {
 		c.JSON(200, gin.H{
 			"code":    -1, //0, success; 1, fail
@@ -110,7 +123,7 @@ func FindUserByNameAndPwd(c *gin.Context) {
 		})
 		return
 	}
-	pwd := utils.MakePassword(passWord, user.Salt)
+	pwd := utils.MakePassword(password, user.Salt)
 
 	data = models.FindUserByNameAndPwd(name, pwd)
 

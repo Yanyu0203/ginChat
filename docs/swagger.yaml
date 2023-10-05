@@ -17,13 +17,13 @@ paths:
         in: query
         name: name
         type: string
-      - description: passWord
+      - description: password
         in: query
-        name: passWord
+        name: password
         type: string
-      - description: repassWord
+      - description: repassword
         in: query
-        name: repassWord
+        name: repassword
         type: string
       responses:
         "200":
@@ -55,9 +55,9 @@ paths:
         in: query
         name: name
         type: string
-      - description: passWord
+      - description: password
         in: query
-        name: passWord
+        name: password
         type: string
       responses:
         "200":
