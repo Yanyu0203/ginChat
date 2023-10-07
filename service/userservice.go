@@ -233,3 +233,13 @@ func MsgHandler(ws *websocket.Conn, c *gin.Context) {
 func SendUserMsg(c *gin.Context) {
 	models.Chat(c.Writer, c.Request)
 }
+
+func SearchFriends(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Request.FormValue("userId"))
+	users := models.SearchFriend(uint(id))
+	c.JSON(200, gin.H{
+		"code":    0, //  0成功   -1失败
+		"message": "Serch friends success!",
+		"data":    users,
+	})
+}

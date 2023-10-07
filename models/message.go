@@ -17,8 +17,8 @@ type Message struct {
 	gorm.Model
 	FromId   int64 //sender
 	TargetId int64 //receiver
-	Type     int   //群聊...
-	Media    int   //文字、图片等
+	Type     int   //1.私聊 2.群聊 3.广播
+	Media    int   //1.文字 2.表情包 3.图片 4.音频
 	Content  string
 	Pic      string
 	Url      string
