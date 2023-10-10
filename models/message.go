@@ -106,6 +106,7 @@ func recvProc(node *Node) {
 			fmt.Println(err)
 			return
 		}
+		dispatch(data)
 		broadMsg(data)
 		fmt.Println("[ws] recvProc <<<<<<", string(data))
 	}

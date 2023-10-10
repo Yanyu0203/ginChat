@@ -29,3 +29,50 @@ func SearchFriend(userId uint) []UserBasic {
 	utils.DB.Where("id in ?", objIds).Find(&users)
 	return users
 }
+
+func AddFriend(userId uint, targetName string) (int, string) {
+	// user := UserBasic{}
+	if targetName != "" {
+		targetUser := FindUserByName(targetName)
+		if targetUser.Salt != "" {
+			if userId == targetUser.ID {
+				return -1, "Cannot add self"
+			}
+			contact0 := Contact{}
+			utils.DB.Where("owner_id =?  and target_id =? and type=1", userId, targetUser.ID).Find(&contact0)
+			if contact0.ID != 0 {
+				return -1, "You have added this user yet"
+			}
+
+			tx := utils.DB.Begin()
+			//when session start, if error happen than rollback
+			defer func() {
+				if r := recover(); r != nil {
+					tx.Rollback()
+				}
+			}()
+
+			contact := Contact{}
+			contact.OwnerId = userId
+			contact.TargetId = targetUser.ID
+			contact.Type = 1
+			if err := utils.DB.Create(&contact).Error; err != nil {
+				tx.Rollback()
+				return -1, "Add friend fail"
+			}
+
+			contact1 := Contact{}
+			contact1.OwnerId = targetUser.ID
+			contact1.TargetId = userId
+			contact1.Type = 1
+			if err := utils.DB.Create(&contact1).Error; err != nil {
+				tx.Rollback()
+				return -1, "Add friend fail"
+			}
+			tx.Commit()
+			return 0, "Add friend Success"
+		}
+		return -1, "Cannot find friend"
+	}
+	return -1, "Target empty"
+}
