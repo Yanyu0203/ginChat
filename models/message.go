@@ -1,29 +1,36 @@
 package models
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"ginchat/utils"
 	"net"
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
+	"github.com/spf13/viper"
 	"gopkg.in/fatih/set.v0"
 	"gorm.io/gorm"
 )
 
 type Message struct {
 	gorm.Model
-	FromId   int64 //sender
-	TargetId int64 //receiver
-	Type     int   //1.私聊 2.群聊 3.广播
-	Media    int   //1.文字 2.表情包 3.图片 4.音频
-	Content  string
-	Pic      string
-	Url      string
-	Desc     string
-	Amount   int //数字统计
+	UserId     int64 //sender
+	TargetId   int64 //receiver
+	Type       int   //1.私聊 2.群聊 3.广播
+	Media      int   //1.文字 2.表情包 3.图片 4.音频
+	Content    string
+	CreateTime uint64
+	ReadTime   uint64
+	Pic        string
+	Url        string
+	Desc       string
+	Amount     int //数字统计
 }
 
 func (table *Message) TableName() string {
@@ -31,9 +38,13 @@ func (table *Message) TableName() string {
 }
 
 type Node struct {
-	Conn      *websocket.Conn
-	DataQueue chan []byte
-	GroupSets set.Interface
+	Conn          *websocket.Conn //连接
+	Addr          string          //客户端地址
+	FirstTime     uint64          //首次连接时间
+	HeartbeatTime uint64          //心跳时间
+	LoginTime     uint64          //登录时间
+	DataQueue     chan []byte     //消息
+	GroupSets     set.Interface   //好友 / 群
 }
 
 var clientMap map[int64]*Node = make(map[int64]*Node, 0)
@@ -46,7 +57,7 @@ func Chat(writer http.ResponseWriter, request *http.Request) {
 
 	query := request.URL.Query()
 	Id := query.Get("userId")
-	userId, err := strconv.ParseInt(Id, 10, 64)
+	userId, _ := strconv.ParseInt(Id, 10, 64)
 	// msgType := query.Get("type")
 	// targetId := query.Get("targetId")
 	// context := query.Get("context")
@@ -63,10 +74,14 @@ func Chat(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	//2. get connection
+	currentTime := uint64(time.Now().Unix())
 	node := &Node{
-		Conn:      conn,
-		DataQueue: make(chan []byte, 50),
-		GroupSets: set.New(set.ThreadSafe),
+		Conn:          conn,
+		Addr:          conn.RemoteAddr().String(), //客户端地址
+		HeartbeatTime: currentTime,                //心跳时间
+		LoginTime:     currentTime,                //登录时间
+		DataQueue:     make(chan []byte, 50),
+		GroupSets:     set.New(set.ThreadSafe),
 	}
 
 	//3. user contact
@@ -82,7 +97,9 @@ func Chat(writer http.ResponseWriter, request *http.Request) {
 	//6. recv
 	go recvProc(node)
 
-	sendMsg(userId, []byte("Welcome to ginchat"))
+	SetUserOnlineInfo("online_"+Id, []byte(node.Addr), time.Duration(viper.GetInt("timeout.RedisOnlineTime"))*time.Hour)
+
+	// sendMsg(userId, []byte("Welcome to ginchat"))
 }
 
 func sendProc(node *Node) {
@@ -106,9 +123,20 @@ func recvProc(node *Node) {
 			fmt.Println(err)
 			return
 		}
-		dispatch(data)
-		broadMsg(data)
-		fmt.Println("[ws] recvProc <<<<<<", string(data))
+		msg := Message{}
+		err = json.Unmarshal(data, &msg)
+		if err != nil {
+			fmt.Println(err)
+		}
+		if msg.Type == 3 {
+			currentTime := uint64(time.Now().Unix())
+			node.Heartbeat(currentTime)
+		} else {
+			dispatch(data)
+			broadMsg(data)
+			fmt.Println("[ws] recvProc <<<<<<", string(data))
+		}
+
 	}
 }
 
@@ -128,7 +156,7 @@ func init() {
 func udpSendProc() {
 	con, err := net.DialUDP("udp", nil, &net.UDPAddr{
 		IP:   net.IPv4(192, 168, 0, 255),
-		Port: 3000,
+		Port: viper.GetInt("port.udp"),
 	})
 	defer con.Close()
 	if err != nil {
@@ -151,7 +179,7 @@ func udpSendProc() {
 func udpRecvProc() {
 	con, err := net.ListenUDP("udp", &net.UDPAddr{
 		IP:   net.IPv4zero,
-		Port: 3000,
+		Port: viper.GetInt("port.udp"),
 	})
 	if err != nil {
 		fmt.Println(err)
@@ -172,6 +200,7 @@ func udpRecvProc() {
 // 后端调度逻辑
 func dispatch(data []byte) {
 	msg := Message{}
+	msg.CreateTime = uint64(time.Now().Unix())
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
 		fmt.Println(err)
@@ -181,12 +210,42 @@ func dispatch(data []byte) {
 	case 1: //私信
 		fmt.Println("dispatch  data :", string(data))
 		sendMsg(msg.TargetId, data)
-		// case 2://群发
-		// 	sendGroupMsg()
+	case 2: //群发
+		sendGroupMsg(msg.TargetId, data)
 		// case 3://广播
 		// 	sendAllMsg()
 		// case 4:
 
+	}
+}
+
+func sendGroupMsg(targetId int64, msg []byte) {
+	fmt.Println("开始群发信息")
+	userIds := SearchUserByGroupId(uint(targetId))
+	for i := 0; i < len(userIds); i++ {
+		if targetId != int64(userIds[i]) {
+			sendMsg(int64(userIds[i]), msg)
+		}
+	}
+}
+
+func JoinGroup(userId uint, comId string) (int, string) {
+	contact := Contact{}
+	contact.OwnerId = userId
+	contact.Type = 2
+	community := Community{}
+
+	utils.DB.Where("id = ? or name = ?", comId, comId).Find(&community)
+	if community.Name == "" {
+		return -1, "Group not found"
+	}
+	utils.DB.Where("owner_id=? and target_id=? and type =2 ", userId, community.ID).Find(&contact)
+	if !contact.CreatedAt.IsZero() {
+		return -1, "Group already joined"
+	} else {
+		contact.TargetId = community.ID
+		utils.DB.Create(&contact)
+		return 0, "Join group success"
 	}
 }
 
@@ -195,7 +254,99 @@ func sendMsg(userId int64, msg []byte) {
 	rwLocker.RLock()
 	node, ok := clientMap[userId]
 	rwLocker.RUnlock()
-	if ok {
-		node.DataQueue <- msg
+	jsonMsg := Message{}
+	json.Unmarshal(msg, &jsonMsg)
+	ctx := context.Background()
+	targetIdStr := strconv.Itoa(int(userId))
+	userIdStr := strconv.Itoa(int(jsonMsg.UserId))
+	jsonMsg.CreateTime = uint64(time.Now().Unix())
+	r, err := utils.Red.Get(ctx, "online_"+userIdStr).Result()
+	if err != nil {
+		fmt.Println(err)
 	}
+	if r != "" {
+		if ok {
+			fmt.Print("sendMsg >>>>>>>> userId", userId, "    msg: ", string(msg))
+			node.DataQueue <- msg
+		}
+	}
+	var key string
+	if userId > jsonMsg.UserId {
+		key = "msg_" + userIdStr + "_" + targetIdStr
+	} else {
+		key = "msg_" + targetIdStr + "_" + userIdStr
+	}
+	res, err := utils.Red.ZRevRange(ctx, key, 0, -1).Result()
+	if err != nil {
+		fmt.Println(err)
+	}
+	score := float64(cap(res)) + 1
+	ress, e := utils.Red.ZAdd(ctx, key, &redis.Z{score, msg}).Result()
+	if e != nil {
+		fmt.Println(e)
+	}
+	fmt.Println(ress)
+}
+
+func (msg Message) MarshalBinary() ([]byte, error) {
+	return json.Marshal(msg)
+}
+
+func RedisMsg(userIdA int64, userIdB int64, start int64, end int64, isRev bool) []string {
+	rwLocker.RLock()
+	rwLocker.Unlock()
+
+	ctx := context.Background()
+	userIdStr := strconv.Itoa(int(userIdA))
+	targetIdStr := strconv.Itoa(int(userIdB))
+	var key string
+	if userIdA > userIdB {
+		key = "msg_" + userIdStr + "_" + targetIdStr
+	} else {
+		key = "msg_" + targetIdStr + "_" + userIdStr
+	}
+
+	var rels []string
+	var err error
+	if isRev {
+		rels, err = utils.Red.ZRange(ctx, key, start, end).Result()
+	} else {
+		rels, err = utils.Red.ZRevRange(ctx, key, start, end).Result()
+	}
+	if err != nil {
+		fmt.Println(err)
+	}
+	return rels
+}
+
+func (node *Node) Heartbeat(currentTime uint64) {
+	node.HeartbeatTime = currentTime
+	return
+}
+
+// 清理超时连接
+func CleanConnection(param interface{}) (result bool) {
+	result = true
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("CleanConnection err", r)
+		}
+	}()
+	currentTime := uint64(time.Now().Unix())
+	for i := range clientMap {
+		node := clientMap[i]
+		if node.IsHeartbeatTimeOut(currentTime) {
+			fmt.Println("Heartbeat timeout........  Connection close: ", node)
+			node.Conn.Close()
+		}
+	}
+	return result
+}
+
+func (node *Node) IsHeartbeatTimeOut(currentTime uint64) (timeout bool) {
+	if node.HeartbeatTime+viper.GetUint64("timeout.HeartbeatMaxTime") <= currentTime {
+		fmt.Println("Heartbeat timeout........  Logout: ", node)
+		timeout = true
+	}
+	return
 }

@@ -45,6 +45,8 @@ func Router() *gin.Engine {
 	r.POST("/contact/addfriend", service.AddFriend)
 	//create group
 	r.POST("/contact/createCommunity", service.CreateCommunity)
+	//group list
+	r.POST("/contact/loadcommunity", service.LoadCommunity)
 
 	return r
 }
