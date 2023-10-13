@@ -40,6 +40,7 @@ func CreateCommunity(community Community) (int, string) {
 	contact.TargetId = community.ID
 	contact.Type = 2
 	if err := utils.DB.Create(&contact).Error; err != nil {
+		fmt.Println(err)
 		tx.Rollback()
 		return -1, "Create group chat fail"
 	}

@@ -211,21 +211,21 @@ func dispatch(data []byte) {
 		fmt.Println("dispatch  data :", string(data))
 		sendMsg(msg.TargetId, data)
 	case 2: //群发
-		sendGroupMsg(msg.TargetId, data)
+		sendGroupMsg(msg.UserId, msg.TargetId, data)
 		// case 3://广播
 		// 	sendAllMsg()
 		// case 4:
-
 	}
 }
 
-func sendGroupMsg(targetId int64, msg []byte) {
-	fmt.Println("开始群发信息")
+func sendGroupMsg(userId int64, targetId int64, msg []byte) {
+	fmt.Println("开始群发消息")
 	userIds := SearchUserByGroupId(uint(targetId))
 	for i := 0; i < len(userIds); i++ {
-		if targetId != int64(userIds[i]) {
-			sendMsg(int64(userIds[i]), msg)
-		}
+		// if userId != int64(userIds[i]) {
+		// 	sendMsg(int64(userIds[i]), msg)
+		// }
+		sendMsg(int64(userIds[i]), msg)
 	}
 }
 
@@ -250,7 +250,6 @@ func JoinGroup(userId uint, comId string) (int, string) {
 }
 
 func sendMsg(userId int64, msg []byte) {
-	fmt.Print("sendMsg >>>>>>>> userId", userId, "    msg: ", string(msg))
 	rwLocker.RLock()
 	node, ok := clientMap[userId]
 	rwLocker.RUnlock()
@@ -266,7 +265,7 @@ func sendMsg(userId int64, msg []byte) {
 	}
 	if r != "" {
 		if ok {
-			fmt.Print("sendMsg >>>>>>>> userId", userId, "    msg: ", string(msg))
+			fmt.Println("sendMsg >>> userID: ", userId, "  msg:", string(msg))
 			node.DataQueue <- msg
 		}
 	}
@@ -281,7 +280,8 @@ func sendMsg(userId int64, msg []byte) {
 		fmt.Println(err)
 	}
 	score := float64(cap(res)) + 1
-	ress, e := utils.Red.ZAdd(ctx, key, &redis.Z{score, msg}).Result()
+	ress, e := utils.Red.ZAdd(ctx, key, &redis.Z{score, msg}).Result() //jsonMsg
+	//res, e := utils.Red.Do(ctx, "zadd", key, 1, jsonMsg).Result() //备用 后续拓展 记录完整msg
 	if e != nil {
 		fmt.Println(e)
 	}
@@ -294,17 +294,21 @@ func (msg Message) MarshalBinary() ([]byte, error) {
 
 func RedisMsg(userIdA int64, userIdB int64, start int64, end int64, isRev bool) []string {
 	rwLocker.RLock()
-	rwLocker.Unlock()
-
+	//node, ok := clientMap[userIdA]
+	rwLocker.RUnlock()
+	//jsonMsg := Message{}
+	//json.Unmarshal(msg, &jsonMsg)
 	ctx := context.Background()
 	userIdStr := strconv.Itoa(int(userIdA))
 	targetIdStr := strconv.Itoa(int(userIdB))
 	var key string
 	if userIdA > userIdB {
-		key = "msg_" + userIdStr + "_" + targetIdStr
-	} else {
 		key = "msg_" + targetIdStr + "_" + userIdStr
+	} else {
+		key = "msg_" + userIdStr + "_" + targetIdStr
 	}
+	//key = "msg_" + userIdStr + "_" + targetIdStr
+	//rels, err := utils.Red.ZRevRange(ctx, key, 0, 10).Result()  //根据score倒叙
 
 	var rels []string
 	var err error
@@ -314,8 +318,15 @@ func RedisMsg(userIdA int64, userIdB int64, start int64, end int64, isRev bool) 
 		rels, err = utils.Red.ZRevRange(ctx, key, start, end).Result()
 	}
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(err) //没有找到
 	}
+	// 发送推送消息
+	/**
+	// 后台通过websoket 推送消息
+	for _, val := range rels {
+		fmt.Println("sendMsg >>> userID: ", userIdA, "  msg:", val)
+		node.DataQueue <- []byte(val)
+	}**/
 	return rels
 }
 

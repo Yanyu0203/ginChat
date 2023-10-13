@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"ginchat/models"
 	"ginchat/utils"
+	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -215,17 +216,27 @@ func SendMsg(c *gin.Context) {
 	MsgHandler(ws, c)
 }
 
+func RedisMsg(c *gin.Context) {
+	userIdA, _ := strconv.Atoi(c.PostForm("userIdA"))
+	userIdB, _ := strconv.Atoi(c.PostForm("userIdB"))
+	start, _ := strconv.Atoi(c.PostForm("start"))
+	end, _ := strconv.Atoi(c.PostForm("end"))
+	isRev, _ := strconv.ParseBool(c.PostForm("isRev"))
+	res := models.RedisMsg(int64(userIdA), int64(userIdB), int64(start), int64(end), isRev)
+	utils.RespOKList(c.Writer, "ok", res)
+}
+
 func MsgHandler(ws *websocket.Conn, c *gin.Context) {
 	for {
 		msg, err := utils.Subscribe(c, utils.PublishKey)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("MsgHandler 发送失败", err)
 		}
 		tm := time.Now().Format("2006-01-02 15:04:05")
 		m := fmt.Sprintf("[ws][%s]:%s", tm, msg)
 		err = ws.WriteMessage(1, []byte(m))
 		if err != nil {
-			fmt.Println(err)
+			log.Fatalln(err)
 		}
 	}
 }
@@ -260,9 +271,13 @@ func AddFriend(c *gin.Context) {
 func CreateCommunity(c *gin.Context) {
 	ownerId, _ := strconv.Atoi(c.Request.FormValue("ownerId"))
 	name := c.Request.FormValue("name")
+	icon := c.Request.FormValue("icon")
+	desc := c.Request.FormValue("desc")
 	community := models.Community{}
 	community.OwnerId = uint(ownerId)
 	community.Name = name
+	community.Img = icon
+	community.Desc = desc
 	code, msg := models.CreateCommunity(community)
 	if code == 0 {
 		utils.RespOK(c.Writer, code, msg)
@@ -279,4 +294,21 @@ func LoadCommunity(c *gin.Context) {
 	} else {
 		utils.RespFail(c.Writer, msg)
 	}
+}
+
+func JoinGroups(c *gin.Context) {
+	userId, _ := strconv.Atoi(c.Request.FormValue("userId"))
+	comId := c.Request.FormValue("comId")
+	data, msg := models.JoinGroup(uint(userId), comId)
+	if data == 0 {
+		utils.RespOK(c.Writer, data, msg)
+	} else {
+		utils.RespFail(c.Writer, msg)
+	}
+}
+
+func FindByID(c *gin.Context) {
+	userId, _ := strconv.Atoi(c.Request.FormValue("userId"))
+	data := models.FindByID(uint(userId))
+	utils.RespOK(c.Writer, data, "ok")
 }

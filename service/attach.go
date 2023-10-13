@@ -13,6 +13,10 @@ import (
 )
 
 func Upload(c *gin.Context) {
+	UploadLocal(c)
+}
+
+func UploadLocal(c *gin.Context) {
 	w := c.Writer
 	req := c.Request
 	srcFile, head, err := req.FormFile("file")
