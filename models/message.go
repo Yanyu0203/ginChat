@@ -258,6 +258,9 @@ func sendMsg(userId int64, msg []byte) {
 	ctx := context.Background()
 	targetIdStr := strconv.Itoa(int(userId))
 	userIdStr := strconv.Itoa(int(jsonMsg.UserId))
+	// if userIdStr == targetIdStr {
+	// 	return
+	// }
 	jsonMsg.CreateTime = uint64(time.Now().Unix())
 	r, err := utils.Red.Get(ctx, "online_"+userIdStr).Result()
 	if err != nil {
