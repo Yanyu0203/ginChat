@@ -23,7 +23,7 @@ And then run **build.bat** (for windows, **build.sh** for Linux) to build the ap
 ![image](https://github.com/Yanyu0203/ginChat/assets/132418583/35bbf4b2-b32b-45be-b2bd-21916146c717)
 
 #### Contacts List
-![image](https://github.com/Yanyu0203/ginChat/assets/132418583/cabc5845-800b-451d-8a00-f7193f035f60)
+![image](https://github.com/Yanyu0203/ginChat/assets/132418583/ccf2b45f-64a6-4de9-a19b-1572c0c7cae3)
 
 #### Group Chat List
 ![image](https://github.com/Yanyu0203/ginChat/assets/132418583/27ef42fa-2169-484a-bfd5-4980f5dc4cee)
@@ -33,7 +33,7 @@ And then run **build.bat** (for windows, **build.sh** for Linux) to build the ap
 
 ### Test
 Tools: JMeter  
-Test machine: local laptop  
+Test machine: personal laptop(AMD R7 4800H)  
 I first tested in normal case with 300 threads for 10 loops, achieving 5000+ TPS. The setting and results are as followed  
 ![set2](https://github.com/Yanyu0203/ginChat/assets/132418583/85e66ea6-12c6-44a4-9b16-f0579774781e)  
 ![test1](https://github.com/Yanyu0203/ginChat/assets/132418583/abd13d19-538d-4503-8fa1-b58043e263aa)  
