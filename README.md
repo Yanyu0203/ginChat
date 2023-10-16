@@ -11,5 +11,5 @@ go 1.20
 MySQL  
 Redis  
 If you want to build and run this application in your local environment. Please make sure you have environments mentioned above. And then you should update **app.yml** according your environment  
-![image](https://github.com/Yanyu0203/ginChat/assets/132418583/973e267a-42b4-4979-8de7-9095ff0d9653)
+![image](https://github.com/Yanyu0203/ginChat/assets/132418583/973e267a-42b4-4979-8de7-9095ff0d9653)  
 And then run **build.bat** (for windows, **build.sh** for Linux) to build the application.
